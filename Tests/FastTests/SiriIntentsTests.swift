@@ -5,93 +5,76 @@ import Testing
 
 @Suite(.serialized)
 struct SiriIntentsTests {
+    /// Runs `body` with the two switches the summary intent reads set as
+    /// asked, and puts them back.
     @MainActor
-    @Test func siriAppIntentsSettingClassification() {
+    private func withSettings(siri: Bool?, ai: AIUse.Level?, _ body: () async throws -> Void) async rethrows {
+        let keys = [SystemIntentsBridge.enabledKey, AIUse.key]
+        let originals = keys.map { Store.settings.object(forKey: $0) }
+        defer {
+            for (key, original) in zip(keys, originals) {
+                if let original { Store.settings.set(original, forKey: key) } else { Store.settings.removeObject(forKey: key) }
+            }
+        }
+        if let siri { Store.settings.set(siri, forKey: SystemIntentsBridge.enabledKey) } else { Store.settings.removeObject(forKey: SystemIntentsBridge.enabledKey) }
+        if let ai { Store.settings.set(ai.rawValue, forKey: AIUse.key) } else { Store.settings.removeObject(forKey: AIUse.key) }
+        try await body()
+    }
+
+    @MainActor
+    @Test func siriSettingIsThePersonsAlone() {
         let item = SettingsItem.all.first { $0.id == "ai-siri" }
         #expect(item != nil)
         #expect(item?.page == .ai)
-        #expect(NativeActions.classification(item!) == "read_write")
-        #expect(NativeSetting.all.contains { $0.id == "ai-siri" })
+        #expect(NativeActions.classification(item!) == "user_only")
+        #expect(!NativeSetting.all.contains { $0.id == "ai-siri" })
+        #expect(!(item?.words ?? "").contains("arc-divergent"))
     }
 
     @MainActor
-    @Test func siriAppIntentsToggle() throws {
-        let original = Store.settings.object(forKey: "ai.siri.enabled")
-        defer {
-            if let original {
-                Store.settings.set(original, forKey: "ai.siri.enabled")
-            } else {
-                Store.settings.removeObject(forKey: "ai.siri.enabled")
-            }
+    @Test func siriAppIntentsToggle() async {
+        await withSettings(siri: nil, ai: nil) {
+            let prefs = Preferences()
+            // Off by default
+            #expect(!prefs.siriAppIntents)
+
+            prefs.siriAppIntents = true
+            #expect(Store.settings.bool(forKey: SystemIntentsBridge.enabledKey))
+
+            prefs.siriAppIntents = false
+            #expect(!Store.settings.bool(forKey: SystemIntentsBridge.enabledKey))
         }
-
-        let prefs = Preferences()
-        // Off by default
-        Store.settings.removeObject(forKey: "ai.siri.enabled")
-        #expect(!prefs.siriAppIntents)
-
-        // Toggled on
-        prefs.siriAppIntents = true
-        #expect(Store.settings.bool(forKey: "ai.siri.enabled"))
-
-        // Toggled off
-        prefs.siriAppIntents = false
-        #expect(!Store.settings.bool(forKey: "ai.siri.enabled"))
     }
 
     @MainActor
-    @Test func intentsRefuseWhenDisabled() async throws {
-        let original = Store.settings.object(forKey: "ai.siri.enabled")
-        defer {
-            if let original {
-                Store.settings.set(original, forKey: "ai.siri.enabled")
-            } else {
-                Store.settings.removeObject(forKey: "ai.siri.enabled")
-            }
+    @Test func summaryRefusesWhenSiriIsOff() async {
+        await withSettings(siri: false, ai: .on) {
+            #expect(throws: SystemIntentError.disabled) { try SystemIntentsGuard.checkSummaryAllowed() }
+            await #expect(throws: SystemIntentError.disabled) { try await SummarizePageIntent().perform() }
         }
-
-        // Ensure disabled
-        Store.settings.set(false, forKey: "ai.siri.enabled")
-
-        var openPage = OpenPageIntent()
-        openPage.address = URL(string: "https://example.com")!
-        await #expect(throws: SystemIntentError.self) {
-            try await openPage.perform()
-        }
-
-        let newTab = NewTabIntent()
-        await #expect(throws: SystemIntentError.self) {
-            try await newTab.perform()
-        }
-
-        let summarize = SummarizePageIntent()
-        await #expect(throws: SystemIntentError.self) {
-            try await summarize.perform()
-        }
-
-        // Check error description
-        #expect(SystemIntentError.disabled.localizedDescription == "Siri App Intents are disabled in Yab Settings.")
-        #expect(SystemIntentError.disabled.errorDescription == "Siri App Intents are disabled in Yab Settings.")
     }
 
     @MainActor
-    @Test func summarizeFailsCleanlyWhenNoActivePage() async throws {
-        let original = Store.settings.object(forKey: "ai.siri.enabled")
-        defer {
-            if let original {
-                Store.settings.set(original, forKey: "ai.siri.enabled")
-            } else {
-                Store.settings.removeObject(forKey: "ai.siri.enabled")
-            }
+    @Test func summaryRefusesWhenAIIsOff() async {
+        await withSettings(siri: true, ai: .off) {
+            #expect(throws: SystemIntentError.aiOff) { try SystemIntentsGuard.checkSummaryAllowed() }
         }
+    }
 
-        Store.settings.set(true, forKey: "ai.siri.enabled")
-
-        let summarize = SummarizePageIntent()
-        // No browser / tab open in this headless test
-        await #expect(throws: SystemIntentError.self) {
-            try await summarize.perform()
+    @MainActor
+    @Test func summaryIsAllowedWhenAsked() async {
+        // "When Asked" still answers what the person calls up themselves.
+        await withSettings(siri: true, ai: .asked) {
+            #expect(throws: Never.self) { try SystemIntentsGuard.checkSummaryAllowed() }
         }
+    }
+
+    @Test func errorsSayWhatHappened() {
+        #expect(SystemIntentError.disabled.errorDescription == "Siri & App Intents is off in Yab Settings.")
+        #expect(SystemIntentError.aiOff.errorDescription == "AI is turned off in Yab Settings.")
         #expect(SystemIntentError.noActivePage.errorDescription == "There is no open web page to summarize.")
+        #expect(SystemIntentError.privatePage.errorDescription == "Yab does not read private tabs.")
+        #expect(SystemIntentError.asleepPage.errorDescription == "That tab is asleep. Switch to it in Yab, then try again.")
+        #expect(SystemIntentError.noSummary.errorDescription == "Yab could not summarize this page on this Mac.")
     }
 }

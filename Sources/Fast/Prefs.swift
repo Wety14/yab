@@ -1035,10 +1035,10 @@ final class Preferences: ObservableObject, Relaying {
         willSet { relay.send(\.floatsAway, newValue) }
         didSet { store.set(floatsAway, forKey: "float.away") }
     }
-    /// arc-divergent: Siri & App Intents integration. Off by default.
+    /// Settings › AI › Siri & App Intents: Siri and Shortcuts reading the page in front. Off by default.
     var siriAppIntents: Bool {
         willSet { relay.send(\.siriAppIntents, newValue) }
-        didSet { store.set(siriAppIntents, forKey: "ai.siri.enabled") }
+        didSet { store.set(siriAppIntents, forKey: SystemIntentsBridge.enabledKey) }
     }
     init() {
         // Glass from Settings › Experimental, put in the looks first.
@@ -1078,7 +1078,7 @@ final class Preferences: ObservableObject, Relaying {
         agentsRemember = !store.bool(forKey: "agents.forget")
         aiUse = AIUse.level(in: store)
         aiRowsHidden = AIUse.rowsHidden(in: store)
-        siriAppIntents = store.bool(forKey: "ai.siri.enabled")
+        siriAppIntents = store.bool(forKey: SystemIntentsBridge.enabledKey)
         tidyTabs = store.object(forKey: "tidy.tabs") as? Bool ?? true
         let titles = store.object(forKey: "tidy.titles") as? Bool ?? true
         tidyTitles = titles

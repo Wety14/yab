@@ -154,7 +154,7 @@ struct SettingsItem: Identifiable, Hashable {
         SettingsItem(id: "ai-use", page: .ai, title: "AI in Yab",
                      words: "turn off ai disable ai no ai hide ai off when asked only on apple intelligence model claude chatgpt kill switch"),
         SettingsItem(id: "ai-siri", page: .ai, title: "Siri & App Intents",
-                     words: "siri shortcuts app intents voice speech summarization arc-divergent"),
+                     words: "siri shortcuts app intents voice speech summarize page"),
         SettingsItem(id: "dev-agents-allowed", page: .developers, title: "Let agents use Yab",
                      words: "outside agents claude code codex cli mcp yab command drive yab agents use yab bench"),
         SettingsItem(id: "agents-ask-opens", page: .ai, title: "Default view",

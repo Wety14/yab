@@ -697,8 +697,13 @@ enum Links {
     static func take(_ url: URL) {}
     @MainActor static func requestNewTab() {}
 }
+enum SystemIntentsBridge {
+    static var siriEnabled: Bool { true }
+    static var aiAllowed: Bool { true }
+    @MainActor static func summarizeFrontPage() async throws -> String { "" }
+}
 SWIFT
-printf '%s\n' '["AppIntent","AppEntity"]' > "$INTENTS/protocols.json"
+printf '%s\n' '["AppIntent","AppEntity","AppShortcutsProvider"]' > "$INTENTS/protocols.json"
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
 TRIPLE="$(uname -m)-apple-macosx$MINIMUM"
 xcrun swiftc -parse-as-library -whole-module-optimization -c \

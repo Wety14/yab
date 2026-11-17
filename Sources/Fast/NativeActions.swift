@@ -24,8 +24,7 @@ struct NativeSetting {
                     "float-leave": "float.leave", "link-folders": "tabs.linkFolders", "folder-emoji": "tabs.folderEmoji", "opt-shift-folders": "tabs.optShiftFolders", "meeting-folders": "tabs.meetingFolders", "today-every-window": KeptEverywhere.todayKey, "float-away": "float.away", "dev-offer": "dev.offer", "dev-side": "dev.side", "search-engine": Engine.key, "tidy": "tabs.tidy",
                     "live-folders": LiveFolderFeature.key, "float-snap": Floater.snapToEdgesKey,
                     "sidebar-button": "sidebar.button", "tidy-tabs": "tidy.tabs", "tidy-titles": "tidy.titles", "folder-names": "folders.names",
-                    "tidy-downloads": "tidy.downloads", "ai-instant-links": "field.instant", "ai-link-previews": LinkCard.key,
-                    "ai-siri": "ai.siri.enabled"]
+                    "tidy-downloads": "tidy.downloads", "ai-instant-links": "field.instant", "ai-link-previews": LinkCard.key]
         guard let key = keys[id], let raw = Store.settings.object(forKey: key), let value = try? NativeValue.read(raw) else { return nil }
         let descriptor: [String: Any] = ["parameters": ["properties": ["value": schema], "required": ["value"]]]
         guard (try? NativeActions.validate(["value": value], descriptor: descriptor)) != nil else { return nil }
@@ -273,7 +272,6 @@ struct NativeSetting {
         boolean("tidy-downloads", "Rename downloads based on their content", \.tidyDownloads),
         boolean("ai-instant-links", "Instant links: Shift-Return opens the top search result", \.instantLinks),
         boolean("ai-link-previews", "Link previews: hold Shift over a link", \.linkPreviews),
-        boolean("ai-siri", "Siri & App Intents", \.siriAppIntents),
         Self(id: "tidy", title: "Archive idle tabs after hours", schema: ["type": "integer", "enum": Tidy.allCases.map(\.rawValue)],
              read: { .number(Double($0.tidyAfter.rawValue)) }, write: { prefs, value in
                  guard case .number(let n) = value, let tidy = Tidy.allCases.first(where: { Double($0.rawValue) == n }) else { throw NativeFailure("invalid_arguments", "Choose an available idle-tab duration") }
@@ -297,7 +295,9 @@ enum NativeActions {
                                  // The person's consent for mail going to their AI (MailConsent): theirs alone.
                                  "mail-ahead", "mail-summaries", "mail-agents-others",
                                  // AI in Yab (AIUse): the person turns AI on or off, never an agent.
-                                 "ai-use"])
+                                 "ai-use",
+                                 // Siri reading the page in front: the person's call, never an agent's.
+                                 "ai-siri"])
 
     /// Sources an agent can add as Settings › Live Folders does; a search,
     /// a repository (live.follow_repo) and a routine's folder come their own ways.

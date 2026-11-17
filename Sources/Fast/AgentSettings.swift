@@ -56,6 +56,10 @@ struct AIPage: View {
                 .settingsAnchor("ai-while-you-browse")
         }
         Section {
+            SettingsSwitch("Siri & App Intents", isOn: $prefs.siriAppIntents)
+                .settingsAnchor("ai-siri")
+        }
+        Section {
             FeatureRow(.agents, detail: agentsDetail, model: model)
                 .settingsAnchor("ai-agents")
             FeatureRow(.agentRoutines, detail: routinesDetail, model: model)

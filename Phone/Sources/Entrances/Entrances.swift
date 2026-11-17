@@ -19,6 +19,8 @@ enum Entrances {
     }
 
     private static weak var app: AppModel?
+    /// The attached app model, accessible by intents running in-process.
+    static var attachedApp: AppModel? { app }
     private static var queue: SharedLinkQueue?
     private static var waiting: [Request] = []
     private static var watch: NSObjectProtocol?

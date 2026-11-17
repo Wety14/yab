@@ -24,6 +24,7 @@ struct OpenURLInYabIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
+        try YabIntentsGuard.checkEnabled()
         guard SharedItems.isWeb(url) else { throw YabIntentError.notWeb }
         Entrances.perform(.open(url))
         return .result()
@@ -49,6 +50,7 @@ struct SearchInYabIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
+        try YabIntentsGuard.checkEnabled()
         Entrances.perform(.search(text))
         return .result()
     }
@@ -63,17 +65,72 @@ struct NewPrivateTabIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
+        try YabIntentsGuard.checkEnabled()
         Entrances.perform(.route(.privateTab))
         return .result()
     }
 }
 
-enum YabIntentError: Error, CustomLocalizedStringResourceConvertible {
+/// Summarizes the web page currently in front in Yab.
+struct SummarizeCurrentPageIntent: AppIntent {
+    static let title: LocalizedStringResource = "Summarize Current Page"
+    static let description = IntentDescription("Summarize the web page currently open in Yab.")
+    static let openAppWhenRun = false
+
+    init() {}
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        try YabIntentsGuard.checkEnabled()
+
+        guard let app = Entrances.attachedApp,
+              let activeTab = app.browser.tab,
+              let url = activeTab.navigationURL ?? URL(string: activeTab.address) else {
+            throw YabIntentError.noActivePage
+        }
+
+        let context = await PageText.read(activeTab, pool: app.pages)
+        let title = activeTab.title.isEmpty ? url.absoluteString : activeTab.title
+        let pageSummary: String
+
+        let model = OnDeviceModel()
+        let ask = AskContext(
+            question: "Summarize this page in two or three plain sentences.",
+            page: context,
+            history: []
+        )
+        if model.isAvailable, let answered = try? await model.answer(ask), !answered.isEmpty {
+            pageSummary = answered
+        } else if !context.text.isEmpty {
+            let snippet = context.text.prefix(280).trimmingCharacters(in: .whitespacesAndNewlines)
+            pageSummary = "\(title): \(snippet)"
+        } else {
+            pageSummary = "\(title): \(url.absoluteString)"
+        }
+
+        return .result(dialog: IntentDialog(stringLiteral: pageSummary))
+    }
+}
+
+/// Helper gate verifying whether Siri & App Intents are enabled in Settings.
+enum YabIntentsGuard {
+    static func checkEnabled() throws {
+        guard UserDefaults.standard.bool(forKey: "ai.siri.enabled") else {
+            throw YabIntentError.disabled
+        }
+    }
+}
+
+enum YabIntentError: Error, Equatable, CustomLocalizedStringResourceConvertible {
     case notWeb
+    case disabled
+    case noActivePage
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .notWeb: "Yab opens web pages: links that start with http or https."
+        case .disabled: "Siri App Intents are disabled in Yab Settings."
+        case .noActivePage: "There is no open web page to summarize."
         }
     }
 }
@@ -82,6 +139,10 @@ enum YabIntentError: Error, CustomLocalizedStringResourceConvertible {
 /// Their pictures are the system's symbols: App Shortcuts take no others.
 struct YabShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(intent: SummarizeCurrentPageIntent(), phrases: [
+            "Summarize this page in \(.applicationName)",
+            "Summarize page in \(.applicationName)",
+        ], shortTitle: "Summarize Page", systemImageName: "doc.text")
         AppShortcut(intent: SearchInYabIntent(), phrases: [
             "Search in \(.applicationName)",
             "Search the web in \(.applicationName)",

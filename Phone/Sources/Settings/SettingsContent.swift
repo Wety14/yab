@@ -342,6 +342,9 @@ struct SettingsContent {
                 row("aboutPage", .glyph(.sparkle), "About a page", pageAnswersValue, .page(.aboutPage)),
                 row("everythingElse", .face, "Everything else", everythingElseValue, .page(.everythingElse)),
                 row("agent", .face, "Agent", agentValue, .page(.agent)),
+            ]), SettingsSectionModel(id: "ai.siri", title: "Siri", rows: [
+                SettingsRowModel(id: "ai.siri.enabled", icon: .glyph(.sparkle), title: "Siri & App Intents", value: nil,
+                                 kind: .toggle(Binding(get: { store.siriAppIntents }, set: { store.siriAppIntents = $0 }))),
             ]), SettingsSectionModel(id: "ai.approvals", title: "Approvals", rows: [
                 row("faceID", .glyph(.faceId), "Face ID for Pay and Post", faceIDValue, .page(.faceID)),
             ])]

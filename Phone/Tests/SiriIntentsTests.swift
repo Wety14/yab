@@ -67,7 +67,7 @@ final class SiriIntentsTests: XCTestCase {
 
     // MARK: - summarizing the page in front
 
-    func testSummarizingAsksForFaceIDFirst() {
+    func testSummarizingNeedsAnUnlockedIPhone() {
         XCTAssertEqual(SummarizeCurrentPageIntent.authenticationPolicy, .requiresAuthentication)
     }
 

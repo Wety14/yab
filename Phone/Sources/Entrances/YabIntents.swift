@@ -72,8 +72,8 @@ struct NewPrivateTabIntent: AppIntent {
 }
 
 /// Summarizes the web page in front in Yab, with the model on this iPhone.
-/// The words stay on the iPhone, but Siri shows or speaks the answer: so it
-/// asks for Face ID first (as the task buttons do) and never reads a private tab.
+/// The words stay on the iPhone, but Siri shows or speaks the answer, so a
+/// private tab is never read.
 struct SummarizeCurrentPageIntent: AppIntent {
     static let title: LocalizedStringResource = "Summarize Current Page"
     static let description = IntentDescription("Summarize the web page currently open in Yab.")

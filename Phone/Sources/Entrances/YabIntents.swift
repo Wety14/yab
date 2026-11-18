@@ -71,11 +71,14 @@ struct NewPrivateTabIntent: AppIntent {
     }
 }
 
-/// Summarizes the web page currently in front in Yab.
+/// Summarizes the web page in front in Yab, with the model on this iPhone.
+/// The words stay on the iPhone, but Siri shows or speaks the answer: so it
+/// asks for Face ID first (as the task buttons do) and never reads a private tab.
 struct SummarizeCurrentPageIntent: AppIntent {
     static let title: LocalizedStringResource = "Summarize Current Page"
     static let description = IntentDescription("Summarize the web page currently open in Yab.")
     static let openAppWhenRun = false
+    static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
 
     init() {}
 
@@ -83,41 +86,43 @@ struct SummarizeCurrentPageIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         try YabIntentsGuard.checkEnabled()
 
-        guard let app = Entrances.attachedApp,
-              let activeTab = app.browser.tab,
-              let url = activeTab.navigationURL ?? URL(string: activeTab.address) else {
-            throw YabIntentError.noActivePage
-        }
-
-        let context = await PageText.read(activeTab, pool: app.pages)
-        let title = activeTab.title.isEmpty ? url.absoluteString : activeTab.title
-        let pageSummary: String
-
+        guard let front = Entrances.pageInFront() else { throw YabIntentError.noActivePage }
+        try PageSummary.check(url: front.tab.navigationURL ?? URL(string: front.tab.address), isPrivate: front.isPrivate)
+        // A page that is not loaded has only its title to read: not a summary.
+        guard front.pages.isLive(front.tab.id) else { throw YabIntentError.pageNotRead }
         let model = OnDeviceModel()
-        let ask = AskContext(
-            question: "Summarize this page in two or three plain sentences.",
-            page: context,
-            history: []
-        )
-        if model.isAvailable, let answered = try? await model.answer(ask), !answered.isEmpty {
-            pageSummary = answered
-        } else if !context.text.isEmpty {
-            let snippet = context.text.prefix(280).trimmingCharacters(in: .whitespacesAndNewlines)
-            pageSummary = "\(title): \(snippet)"
-        } else {
-            pageSummary = "\(title): \(url.absoluteString)"
-        }
+        guard model.isAvailable else { throw YabIntentError.noModel }
 
-        return .result(dialog: IntentDialog(stringLiteral: pageSummary))
+        let page = await PageText.read(front.tab, pool: front.pages)
+        let language = Locale.preferredLanguages.first.flatMap { Locale(identifier: $0).language.languageCode?.identifier }
+        let ask = AskContext(question: PageSummary.question(languageCode: language), page: page, history: [])
+        guard let summary = try? await model.answer(ask), !summary.isEmpty else { throw YabIntentError.noSummary }
+        return .result(dialog: IntentDialog(stringLiteral: summary))
     }
 }
 
-/// Helper gate verifying whether Siri & App Intents are enabled in Settings.
+/// What may be summarized, and how it is asked for.
+enum PageSummary {
+    /// A web page that is not private; else why not.
+    static func check(url: URL?, isPrivate: Bool) throws {
+        guard !isPrivate else { throw YabIntentError.privatePage }
+        guard let url, SharedItems.isWeb(url) else { throw YabIntentError.noActivePage }
+    }
+
+    /// The question, in the person's language: the model answers in the
+    /// language it is told, else in the question's own, which is English.
+    static func question(languageCode: String?) -> String {
+        let base = "Summarize this page in two or three plain sentences."
+        guard let languageCode, let name = Locale(identifier: "en").localizedString(forLanguageCode: languageCode) else { return base }
+        return base + " Answer in \(name)."
+    }
+}
+
+/// Siri, Shortcuts and Spotlight reach Yab only while Settings allows it.
 enum YabIntentsGuard {
-    static func checkEnabled() throws {
-        guard UserDefaults.standard.bool(forKey: "ai.siri.enabled") else {
-            throw YabIntentError.disabled
-        }
+    @MainActor
+    static func checkEnabled(in store: SettingsStore = .shared) throws {
+        guard store.siriAppIntents else { throw YabIntentError.disabled }
     }
 }
 
@@ -125,12 +130,20 @@ enum YabIntentError: Error, Equatable, CustomLocalizedStringResourceConvertible 
     case notWeb
     case disabled
     case noActivePage
+    case privatePage
+    case pageNotRead
+    case noModel
+    case noSummary
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .notWeb: "Yab opens web pages: links that start with http or https."
         case .disabled: "Siri App Intents are disabled in Yab Settings."
         case .noActivePage: "There is no open web page to summarize."
+        case .privatePage: "Yab does not summarize private tabs."
+        case .pageNotRead: "Open the page in Yab first, then ask again."
+        case .noModel: "Summaries need Apple Intelligence on this iPhone."
+        case .noSummary: "Yab could not summarize this page."
         }
     }
 }

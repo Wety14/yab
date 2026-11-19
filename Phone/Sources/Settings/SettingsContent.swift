@@ -345,7 +345,9 @@ struct SettingsContent {
             ]), SettingsSectionModel(id: "ai.siri", title: "Siri", rows: [
                 SettingsRowModel(id: "ai.siri.enabled", icon: .glyph(.sparkle), title: "Siri & App Intents", value: nil,
                                  kind: .toggle(Binding(get: { store.siriAppIntents }, set: { store.siriAppIntents = $0 }))),
-            ]), SettingsSectionModel(id: "ai.approvals", title: "Approvals", rows: [
+                SettingsRowModel(id: "ai.siri.summary", icon: .glyph(.sparkle), title: "Summarize Pages with Siri", value: nil,
+                                 kind: .toggle(Binding(get: { store.siriPageSummary }, set: { store.siriPageSummary = $0 }))),
+            ], footer: "Siri & App Intents lets Siri, Shortcuts and Spotlight open links, search and start a private tab. Summarize Pages is separate and off until you turn it on: Siri then reads the page in front, with Apple Intelligence on this iPhone, and says the summary aloud. Private tabs are never read."), SettingsSectionModel(id: "ai.approvals", title: "Approvals", rows: [
                 row("faceID", .glyph(.faceId), "Face ID for Pay and Post", faceIDValue, .page(.faceID)),
             ])]
         case .spaces:

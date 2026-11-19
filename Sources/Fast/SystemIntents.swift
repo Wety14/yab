@@ -92,6 +92,9 @@ struct SummarizePageIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         try SystemIntentsGuard.checkSummaryAllowed()
         let summary = try await SystemIntentsBridge.summarizeFrontPage()
+        // Reading and summarizing wait. Nothing is spoken if either switch
+        // went off meanwhile.
+        try SystemIntentsGuard.checkSummaryAllowed()
         return .result(dialog: IntentDialog(stringLiteral: summary))
     }
 }

@@ -69,6 +69,86 @@ struct SiriIntentsTests {
         }
     }
 
+    /// Counts what a stand-in was asked, for the tests below.
+    @MainActor
+    private final class Calls {
+        var model = 0
+    }
+
+    /// Runs `body` with a page that needs no browser and the given model in
+    /// place of the one on this Mac, and puts the real ones back.
+    @MainActor
+    private func withStandIns(page: @escaping @MainActor () async throws -> LinkSummary.Page = { LinkSummary.Page(title: "Fixture", text: "Owned fixture") },
+                              model: @escaping @MainActor (LinkSummary.Page) async -> String?,
+                              _ body: () async throws -> Void) async rethrows {
+        let originalPage = SystemIntentsBridge.readPage
+        let originalModel = SystemIntentsBridge.writeGist
+        defer {
+            SystemIntentsBridge.readPage = originalPage
+            SystemIntentsBridge.writeGist = originalModel
+        }
+        SystemIntentsBridge.readPage = page
+        SystemIntentsBridge.writeGist = model
+        try await body()
+    }
+
+    @MainActor
+    @Test func summaryIsSpokenWhenNothingChangesWhileTheModelWrites() async {
+        // The slow model alone changes nothing: the words come back.
+        await withSettings(siri: true, ai: .on) {
+            await withStandIns(model: { _ in
+                try? await Task.sleep(for: .milliseconds(50))
+                return "A fixture summary."
+            }) {
+                await #expect(throws: Never.self) { try await SummarizePageIntent().perform() }
+            }
+        }
+    }
+
+    @MainActor
+    @Test func summaryIsNotSpokenWhenSiriGoesOffWhileTheModelWrites() async {
+        await withSettings(siri: true, ai: .on) {
+            await withStandIns(model: { _ in
+                try? await Task.sleep(for: .milliseconds(50))
+                Store.settings.set(false, forKey: SystemIntentsBridge.enabledKey)
+                return "A summary nobody may hear."
+            }) {
+                await #expect(throws: SystemIntentError.disabled) { try await SummarizePageIntent().perform() }
+            }
+        }
+    }
+
+    @MainActor
+    @Test func summaryIsNotSpokenWhenAIGoesOffWhileTheModelWrites() async {
+        await withSettings(siri: true, ai: .on) {
+            await withStandIns(model: { _ in
+                try? await Task.sleep(for: .milliseconds(50))
+                Store.settings.set(AIUse.Level.off.rawValue, forKey: AIUse.key)
+                return "A summary nobody may hear."
+            }) {
+                await #expect(throws: SystemIntentError.aiOff) { try await SummarizePageIntent().perform() }
+            }
+        }
+    }
+
+    @MainActor
+    @Test func pageIsNotSentToTheModelWhenSiriGoesOffWhileItIsRead() async {
+        let calls = Calls()
+        await withSettings(siri: true, ai: .on) {
+            await withStandIns(page: {
+                try? await Task.sleep(for: .milliseconds(50))
+                Store.settings.set(false, forKey: SystemIntentsBridge.enabledKey)
+                return LinkSummary.Page(title: "Fixture", text: "Owned fixture")
+            }, model: { _ in
+                calls.model += 1
+                return "A summary nobody may hear."
+            }) {
+                await #expect(throws: SystemIntentError.disabled) { try await SummarizePageIntent().perform() }
+                #expect(calls.model == 0)
+            }
+        }
+    }
+
     @Test func errorsSayWhatHappened() {
         #expect(SystemIntentError.disabled.errorDescription == "Siri & App Intents is off in Yab Settings.")
         #expect(SystemIntentError.aiOff.errorDescription == "AI is turned off in Yab Settings.")

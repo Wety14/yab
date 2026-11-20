@@ -699,8 +699,6 @@ enum Links {
 }
 enum SystemIntentsBridge {
     static var siriEnabled: Bool { true }
-    static var aiAllowed: Bool { true }
-    @MainActor static func summarizeFrontPage() async throws -> String { "" }
 }
 SWIFT
 printf '%s\n' '["AppIntent","AppEntity","AppShortcutsProvider"]' > "$INTENTS/protocols.json"

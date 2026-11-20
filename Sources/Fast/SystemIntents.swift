@@ -9,45 +9,27 @@ import Foundation
 /// Why an intent could not answer, in the words Siri and Shortcuts say.
 enum SystemIntentError: Error, LocalizedError, CustomLocalizedStringResourceConvertible {
     case disabled
-    case aiOff
-    case noActivePage
-    case privatePage
-    case asleepPage
-    case noSummary
+    case invalidAddress
 
     var errorDescription: String? {
         switch self {
         case .disabled: "Siri & App Intents is off in Yab Settings."
-        case .aiOff: "AI is turned off in Yab Settings."
-        case .noActivePage: "There is no open web page to summarize."
-        case .privatePage: "Yab does not read private tabs."
-        case .asleepPage: "That tab is asleep. Switch to it in Yab, then try again."
-        case .noSummary: "Yab could not summarize this page on this Mac."
+        case .invalidAddress: "Enter an HTTP or HTTPS web address."
         }
     }
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .disabled: "Siri & App Intents is off in Yab Settings."
-        case .aiOff: "AI is turned off in Yab Settings."
-        case .noActivePage: "There is no open web page to summarize."
-        case .privatePage: "Yab does not read private tabs."
-        case .asleepPage: "That tab is asleep. Switch to it in Yab, then try again."
-        case .noSummary: "Yab could not summarize this page on this Mac."
+        case .invalidAddress: "Enter an HTTP or HTTPS web address."
         }
     }
 }
 
-/// What a voice request needs: the switch in Settings › AI. Reading a page
-/// needs AI on as well.
+/// Every intent opens something in Yab only while Siri & App Intents is on.
 enum SystemIntentsGuard {
-    static func checkSiriAllowed() throws {
+    static func check() throws {
         guard SystemIntentsBridge.siriEnabled else { throw SystemIntentError.disabled }
-    }
-
-    static func checkSummaryAllowed() throws {
-        try checkSiriAllowed()
-        guard SystemIntentsBridge.aiAllowed else { throw SystemIntentError.aiOff }
     }
 }
 
@@ -60,16 +42,13 @@ struct OpenPageIntent: AppIntent {
 
     @Parameter(title: "Web Address") var address: URL
 
+    @MainActor
     func perform() async throws -> some IntentResult {
-        guard Bookmark.keepable(address) else { throw OpenPageError.invalidAddress }
-        await MainActor.run { Links.take(address) }
+        try SystemIntentsGuard.check()
+        guard Bookmark.keepable(address) else { throw SystemIntentError.invalidAddress }
+        Links.take(address)
         return .result()
     }
-}
-
-private enum OpenPageError: Error, LocalizedError {
-    case invalidAddress
-    var errorDescription: String? { "Enter an HTTP or HTTPS web address." }
 }
 
 struct NewTabIntent: AppIntent {
@@ -79,29 +58,9 @@ struct NewTabIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        try SystemIntentsGuard.checkSiriAllowed()
+        try SystemIntentsGuard.check()
         Links.requestNewTab()
         return .result()
-    }
-}
-
-/// Says what the web page in front in Yab is about, from the model on this
-/// Mac. Never a private tab, and only with Siri & App Intents and AI on.
-struct SummarizePageIntent: AppIntent {
-    static let title: LocalizedStringResource = "Summarize Page in Yab"
-    static let description = IntentDescription("Summarize the web page currently open in Yab.")
-    static var openAppWhenRun: Bool { false }
-    // The page in front is read aloud: not on a Mac that is locked.
-    static var authenticationPolicy: IntentAuthenticationPolicy { .requiresLocalDeviceAuthentication }
-
-    @MainActor
-    func perform() async throws -> some IntentResult & ProvidesDialog {
-        try SystemIntentsGuard.checkSummaryAllowed()
-        let summary = try await SystemIntentsBridge.summarizeFrontPage()
-        // Reading and summarizing wait. Nothing is spoken if either switch
-        // went off meanwhile.
-        try SystemIntentsGuard.checkSummaryAllowed()
-        return .result(dialog: IntentDialog(stringLiteral: summary))
     }
 }
 
@@ -110,15 +69,6 @@ struct SummarizePageIntent: AppIntent {
 /// says one aloud.
 struct YabShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
-        AppShortcut(
-            intent: SummarizePageIntent(),
-            phrases: [
-                "Summarize this page in \(.applicationName)",
-                "Summarize page in \(.applicationName)"
-            ],
-            shortTitle: "Summarize Page",
-            systemImageName: "doc.text"
-        )
         AppShortcut(
             intent: NewTabIntent(),
             phrases: [

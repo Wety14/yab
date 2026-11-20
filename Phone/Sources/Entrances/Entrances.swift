@@ -19,13 +19,6 @@ enum Entrances {
     }
 
     private static weak var app: AppModel?
-    /// The tab in front and the pool that holds its web view, for an intent
-    /// that reads the page. Nil before the app is made. Whether the tab is
-    /// private is said here, so the intent need not reach into the model.
-    static func pageInFront() -> (tab: Tab, pages: WebPool, isPrivate: Bool)? {
-        guard let app, let tab = app.browser.tab else { return nil }
-        return (tab, app.pages, tab.isPrivate || app.browser.space.isPrivate)
-    }
     private static var queue: SharedLinkQueue?
     private static var waiting: [Request] = []
     private static var watch: NSObjectProtocol?

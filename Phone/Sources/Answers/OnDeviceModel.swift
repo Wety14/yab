@@ -12,27 +12,6 @@ final class OnDeviceModel: ChatBackend {
 
     var isAvailable: Bool { SystemLanguageModel.default.isAvailable }
 
-    /// Why the model can or cannot answer now, with Apple Intelligence turned
-    /// off on this iPhone told apart from the model being missing or not
-    /// ready, so a person is told which to fix.
-    enum Readiness: Equatable, Sendable {
-        case ready
-        /// Apple Intelligence is turned off in the iPhone's Settings.
-        case appleIntelligenceOff
-        /// Not eligible, or the model is not ready yet.
-        case unavailable
-    }
-
-    static func readiness(of availability: SystemLanguageModel.Availability) -> Readiness {
-        switch availability {
-        case .available: .ready
-        case .unavailable(.appleIntelligenceNotEnabled): .appleIntelligenceOff
-        case .unavailable: .unavailable
-        }
-    }
-
-    var readiness: Readiness { Self.readiness(of: SystemLanguageModel.default.availability) }
-
     /// A temporary download or disabled setting must not change who owns a page.
     static var isDeviceEligible: Bool {
         if case .unavailable(.deviceNotEligible) = SystemLanguageModel.default.availability { return false }

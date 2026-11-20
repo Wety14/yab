@@ -315,7 +315,10 @@ struct SettingsContent {
                                  kind: .toggle(Binding(get: { store.openKeyboardAtLaunch }, set: { store.openKeyboardAtLaunch = $0 }))),
             ], footer: "Yab opens ready to type. A page you were just reading stays in front."), SettingsSectionModel(id: "general.welcome", title: nil, rows: [
                 SettingsRowModel(id: "general.showWelcome", icon: nil, title: "Show Welcome Again", value: nil, kind: .action(showWelcome)),
-            ], footer: "Yab\u{2019}s first pages once more, from the name to the field. Your tabs, spaces and sync stay as they are.")]
+            ], footer: "Yab\u{2019}s first pages once more, from the name to the field. Your tabs, spaces and sync stay as they are."), SettingsSectionModel(id: "general.siri", title: nil, rows: [
+                SettingsRowModel(id: "general.siriAppIntents", icon: .glyph(.sparkle), title: "Siri & App Intents", value: nil,
+                                 kind: .toggle(Binding(get: { store.siriAppIntents }, set: { store.siriAppIntents = $0 }))),
+            ])]
         case .search:
             let selection = store.searchSelection
             return [SettingsSectionModel(id: "search", title: "Search Engine", rows: store.searchEngines.map { engine in
@@ -342,12 +345,7 @@ struct SettingsContent {
                 row("aboutPage", .glyph(.sparkle), "About a page", pageAnswersValue, .page(.aboutPage)),
                 row("everythingElse", .face, "Everything else", everythingElseValue, .page(.everythingElse)),
                 row("agent", .face, "Agent", agentValue, .page(.agent)),
-            ]), SettingsSectionModel(id: "ai.siri", title: "Siri", rows: [
-                SettingsRowModel(id: "ai.siri.enabled", icon: .glyph(.sparkle), title: "Siri & App Intents", value: nil,
-                                 kind: .toggle(Binding(get: { store.siriAppIntents }, set: { store.siriAppIntents = $0 }))),
-                SettingsRowModel(id: "ai.siri.summary", icon: .glyph(.sparkle), title: "Summarize Pages with Siri", value: nil,
-                                 kind: .toggle(Binding(get: { store.siriPageSummary }, set: { store.siriPageSummary = $0 }))),
-            ], footer: "Siri & App Intents lets Siri, Shortcuts and Spotlight open links, search and start a private tab. Summarize Pages is separate and off until you turn it on: Siri then reads the page in front, with Apple Intelligence on this iPhone, and says the summary aloud. Private tabs are never read."), SettingsSectionModel(id: "ai.approvals", title: "Approvals", rows: [
+            ]), SettingsSectionModel(id: "ai.approvals", title: "Approvals", rows: [
                 row("faceID", .glyph(.faceId), "Face ID for Pay and Post", faceIDValue, .page(.faceID)),
             ])]
         case .spaces:

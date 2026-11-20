@@ -38,11 +38,15 @@ enum SystemIntentError: Error, LocalizedError, CustomLocalizedStringResourceConv
     }
 }
 
-/// What reading a page by voice needs: the switch in Settings › AI, and AI
-/// itself being on.
+/// What a voice request needs: the switch in Settings › AI. Reading a page
+/// needs AI on as well.
 enum SystemIntentsGuard {
-    static func checkSummaryAllowed() throws {
+    static func checkSiriAllowed() throws {
         guard SystemIntentsBridge.siriEnabled else { throw SystemIntentError.disabled }
+    }
+
+    static func checkSummaryAllowed() throws {
+        try checkSiriAllowed()
         guard SystemIntentsBridge.aiAllowed else { throw SystemIntentError.aiOff }
     }
 }
@@ -73,8 +77,10 @@ struct NewTabIntent: AppIntent {
     static let description = IntentDescription("Open a new tab in Yab.")
     static var openAppWhenRun: Bool { true }
 
+    @MainActor
     func perform() async throws -> some IntentResult {
-        await MainActor.run { Links.requestNewTab() }
+        try SystemIntentsGuard.checkSiriAllowed()
+        Links.requestNewTab()
         return .result()
     }
 }

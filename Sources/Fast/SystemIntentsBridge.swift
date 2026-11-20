@@ -40,9 +40,14 @@ enum SystemIntentsBridge {
 
     /// The page in front: its title and the first few thousand letters of its
     /// text. Never a private tab or a tab that is asleep.
+    ///
+    /// In front is what the person sees: a small window with the focus, else
+    /// a peek over the page, else the tab in the window.
     @MainActor
     static func frontPage() async throws -> LinkSummary.Page {
-        guard let browser = BrowserWindows.shared.activeBrowser ?? Links.browser, let tab = browser.active else {
+        let small = LinkWindow.all.first { $0.window.isKeyWindow }
+        guard let browser = BrowserWindows.shared.activeBrowser ?? Links.browser,
+              let tab = small?.tab ?? browser.peeking ?? browser.active else {
             throw SystemIntentError.noActivePage
         }
         guard !browser.privateBrowsing, !tab.shy else { throw SystemIntentError.privatePage }

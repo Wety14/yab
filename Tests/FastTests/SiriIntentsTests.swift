@@ -55,6 +55,21 @@ struct SiriIntentsTests {
     }
 
     @MainActor
+    @Test func newTabRefusesWhenSiriIsOff() async {
+        await withSettings(siri: nil, ai: .on) {
+            #expect(throws: SystemIntentError.disabled) { try SystemIntentsGuard.checkSiriAllowed() }
+            await #expect(throws: SystemIntentError.disabled) { try await NewTabIntent().perform() }
+        }
+    }
+
+    @MainActor
+    @Test func siriAloneAllowsNewTabWithAIOff() async {
+        await withSettings(siri: true, ai: .off) {
+            #expect(throws: Never.self) { try SystemIntentsGuard.checkSiriAllowed() }
+        }
+    }
+
+    @MainActor
     @Test func summaryRefusesWhenAIIsOff() async {
         await withSettings(siri: true, ai: .off) {
             #expect(throws: SystemIntentError.aiOff) { try SystemIntentsGuard.checkSummaryAllowed() }

@@ -250,7 +250,8 @@ final class ColumnPages: NSView {
         withObservationTracking {
             syncNow()
         } onChange: { [weak self] in
-            let told: @Sendable () -> Void = { MainActor.assumeIsolated { self?.told() } }
+            let me = self
+            let told: @Sendable () -> Void = { MainActor.assumeIsolated { me?.told() } }
             if Thread.isMainThread { told() } else { DispatchQueue.main.async(execute: told) }
         }
     }

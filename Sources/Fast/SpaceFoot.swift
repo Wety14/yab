@@ -641,7 +641,7 @@ final class SpaceShown: ObservableObject {
         // The strip's rows and capsule turn in this pass (StripTurns).
         if id != next, !now, let id { StripTurns.shared.begin(from: id, start: handoff) }
         handoff = 0
-        let move = { [self] in
+        let move: @MainActor @Sendable () -> Void = { [self] in
             if id != next {
                 id = next
                 if arrives { arrivals += 1 }

@@ -684,7 +684,7 @@ final class ColumnEndsLayers {
     private let grainTop = CAGradientLayer()
     private let grainFoot = CAGradientLayer()
 
-    func install(in host: NSView, over rows: NSView) {
+    @MainActor func install(in host: NSView, over rows: NSView) {
         self.host = host
         self.rows = rows
         rows.wantsLayer = true
@@ -709,7 +709,7 @@ final class ColumnEndsLayers {
         host.layer?.addSublayer(grains)
     }
 
-    func lay(in bounds: CGRect, frame: ColumnPages.Frame) {
+    @MainActor func lay(in bounds: CGRect, frame: ColumnPages.Frame) {
         // Only wider or narrower (the column's edge pulled, or on its way
         // back): the layers take the width, and the fades, the blurs' curve
         // and the grain, all drawn down the height, are left as they are.
@@ -763,7 +763,7 @@ final class ColumnEndsLayers {
         self.depth(depth, grain: grain, tone: grains.isHidden == false)
     }
 
-    func depth(_ depth: ColumnEnds.Depth, grain: Double, tone: Bool) {
+    @MainActor func depth(_ depth: ColumnEnds.Depth, grain: Double, tone: Bool) {
         let grain = tone ? grain : 0
         guard depth != now || grain != self.grain else { return }
         now = depth

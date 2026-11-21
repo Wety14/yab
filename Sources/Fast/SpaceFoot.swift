@@ -1025,7 +1025,7 @@ private struct StripCarousel<Label: View>: View {
     let to: Space
     let way: Int
     let progress: CGFloat
-    let label: (Space) -> Label
+    let label: @MainActor (Space) -> Label
 
     var body: some View {
         let p = min(1, max(0, progress))

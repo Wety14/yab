@@ -468,8 +468,8 @@ final class AgentSetupModel: ObservableObject {
 
     private var geminiChanges: AnyCancellable?
 
-    init(status: AgentSetup.Status = AgentSetup.status(), consent: ProviderConsent = .shared) {
-        self.consent = consent
+    init(status: AgentSetup.Status = AgentSetup.status(), consent: ProviderConsent? = nil) {
+        self.consent = consent ?? .shared
         self.status = status
         geminiChanges = GeminiAccount.shared.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()

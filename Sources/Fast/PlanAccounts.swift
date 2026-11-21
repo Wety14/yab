@@ -852,11 +852,11 @@ final class PlanAccounts: ObservableObject {
     /// Whether a generic password of this service is in the keychain. Its
     /// attributes only, never its secret, with no prompt allowed: a locked
     /// or guarded item still counts as there.
-    nonisolated static func inKeychain(_ service: String) -> Bool {
+    @Sendable nonisolated static func inKeychain(_ service: String) -> Bool {
         inKeychain(service, account: nil)
     }
 
-    nonisolated static func inKeychain(_ service: String, account: String?) -> Bool {
+    @Sendable nonisolated static func inKeychain(_ service: String, account: String?) -> Bool {
         let context = LAContext()
         context.interactionNotAllowed = true
         var query: [String: Any] = [

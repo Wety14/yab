@@ -497,7 +497,7 @@ final class Agents: ObservableObject {
         if now != calling { calling = now }
     }
     /// Waiting on a session to change: long polls from `agent-wait`.
-    private var waiters: [String: [() -> Void]] = [:]
+    private var waiters: [String: [@MainActor @Sendable () -> Void]] = [:]
     private var calm: DispatchWorkItem?
     /// Per attached session, the moment it will have gone quiet (AgentFeed.rest).
     private var quieting: [String: DispatchWorkItem] = [:]
@@ -868,9 +868,9 @@ final class Agents: ObservableObject {
         changed(session)
     }
 
-    func wait(_ id: String, seconds: Double, _ then: @escaping () -> Void) {
+    func wait(_ id: String, seconds: Double, _ then: @escaping @MainActor @Sendable () -> Void) {
         var fired = false
-        let once = { if !fired { fired = true; then() } }
+        let once: @MainActor @Sendable () -> Void = { if !fired { fired = true; then() } }
         waiters[id, default: []].append(once)
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: once)
     }

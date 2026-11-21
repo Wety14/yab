@@ -432,8 +432,8 @@ enum GrayMark {
 
     /// How light the ink of a gray mark stands, on light ground and dark,
     /// once it is too near the ground's to see at half strength.
-    static let onLight = 0.45
-    static let onDark = 0.6
+    nonisolated static let onLight = 0.45
+    nonisolated static let onDark = 0.6
 
     static func image(_ icon: String, size: CGFloat, dark: Bool = false) -> NSImage {
         let key = "\(size)|\(dark)|\(icon)"

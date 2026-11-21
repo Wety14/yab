@@ -233,7 +233,7 @@ struct SideBar: View {
     /// edge to what the column holds, from that to the page, between the
     /// pins, under them and under the foot. The header keeps it too, from
     /// its doors to the plate and the plate to the pins (SidePlate.below).
-    static let margin: CGFloat = Backdrop.inset
+    nonisolated static let margin: CGFloat = Backdrop.inset
     /// Scrollable room below the last row, separate from the foot: four
     /// rows of nothing, so a long list scrolls its last tabs up off the
     /// foot and away from the window's bottom edge rather than stopping
@@ -241,7 +241,7 @@ struct SideBar: View {
     static var rowsTail: CGFloat { 4 * row }
     /// Where a row's icon starts inside it, and on the same line the
     /// plate's words and the ends of the line under the kept.
-    static let inner: CGFloat = 10
+    nonisolated static let inner: CGFloat = 10
     private var plateTab: Tab? { browser.active ?? SpacePager.shared.keptPlate(in: browser) }
     /// Where the pins start: the column's margin under the header's doors,
     /// and under the plate when the column has the address (SidePlate).

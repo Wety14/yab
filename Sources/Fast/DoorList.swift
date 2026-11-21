@@ -213,7 +213,7 @@ final class DoorList: ObservableObject {
     /// Between the door and the card.
     static let gap: CGFloat = 6
     /// The rows' coordinate space: the host's own, top down.
-    static let space = "door-list"
+    nonisolated static let space = "door-list"
 
     @Published private(set) var stops: [Stop] = []
     /// The row the pointer or the arrows are on.

@@ -1042,7 +1042,7 @@ final class PlanAccounts: ObservableObject {
             let home = Self.make(cli, id: id)
             var account = PlanAccount(id: id, cli: cli, home: home.path)
             let env = env(account, base: found.env)
-            let end = await Agents.shared.connect(cli, binary: binary, env: env, in: browser, privately: true, permit: permit) { [weak self] page in
+            let end = await Agents.shared.connect(cli, binary: binary, env: env, in: browser, privately: true, permit: permit) { [weak self = self] page in
                 guard let self, self.adding == cli, self.step != .checking else { return }
                 self.step = Step(page)
             }

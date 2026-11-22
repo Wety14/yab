@@ -333,9 +333,13 @@ final class DoorList: ObservableObject {
         if let row = row(at: point) { take(row) } else { lit = nil }
     }
 
+    /// That row, here, or beside when the current app event asks for it.
+    func take(_ row: Int) {
+        take(row, as: NSApp.currentEvent)
+    }
+
     /// That row, here, or beside when `event` asks for it (`Browser.beside`).
-    func take(_ row: Int, as event: NSEvent? = nil) {
-        let event = event ?? NSApp.currentEvent
+    func take(_ row: Int, as event: NSEvent?) {
         guard history == nil, row >= 0, row < stops.count, let tab, let browser else { return }
         let stop = stops[row]
         if let front = Browser.beside(event), let url = navigation?.address(stop) {

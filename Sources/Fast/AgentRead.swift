@@ -115,7 +115,7 @@ enum AgentRead {
         let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
         guard !cookies.isEmpty, let host = url.host()?.lowercased() else { return }
         Task { @MainActor in
-            for cookie in cookies where may(host, set: cookie) { store.httpCookieStore.setCookie(cookie) }
+            for cookie in cookies where may(host, set: cookie) { await store.httpCookieStore.setCookie(cookie) }
         }
     }
 

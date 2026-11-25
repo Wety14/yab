@@ -115,15 +115,12 @@ enum AgentRead {
         let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
         guard !cookies.isEmpty, let host = url.host()?.lowercased() else { return }
         Task { @MainActor in keep(cookies, from: host, in: store) }
-+    }
-+
-+    /// An answer's cookies, all handed to the store without a suspension in
-+    /// between, so a newer answer's cookies cannot land halfway through and
-+    /// then be overwritten by these older ones. Synchronous on purpose.
-+    private static func keep(_ cookies: [HTTPCookie], from host: String, in store: WKWebsiteDataStore) {
-+        for cookie in cookies where may(host, set: cookie) { store.httpCookieStore.setCookie(cookie) }
-     }
-     /// Whether a browser takes this cookie from this host: parsing takes
+    }
+    /// An answer's cookies, all handed to the store without a suspension in
+    /// between, so a newer answer's cookies cannot land halfway through and
+    /// then be overwritten by these older ones. Synchronous on purpose.
+    private static func keep(_ cookies: [HTTPCookie], from host: String, in store:WKWebsiteDataStore) {
+        for cookie in cookies where may(host, set: cookie) { store.httpCookieStore.setCookie(cookie) }
     }
 
     /// Whether a browser takes this cookie from this host: parsing takes
